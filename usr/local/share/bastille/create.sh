@@ -217,9 +217,11 @@ ${NAME} {
   devfs_ruleset = 13;
   enforce_statfs = 2;
   exec.clean;
-  exec.consolelog = ${bastille_jail_log};
-  exec.start = '/bin/sh /etc/rc';
-  exec.stop = '/bin/sh /etc/rc.shutdown';
+  #exec.consolelog = ${bastille_jail_log};
+  exec.start = '/bin/true'
+	exec.stop = '/bin/true'
+	#exec.start = '/bin/sh /etc/rc';
+  #exec.stop = '/bin/sh /etc/rc.shutdown';
   host.hostname = ${NAME};
   mount.devfs;
   mount.fstab = ${bastille_jail_fstab};
@@ -645,7 +647,7 @@ if [ -n "${EMPTY_JAIL}" ]; then
     fi
 elif [ -n "${LINUX_JAIL}" ]; then
     if [ -n "${EMPTY_JAIL}" ] || [ -n "${VNET_JAIL}" ] || [ -n "${THICK_JAIL}" ] || [ -n "${CLONE_JAIL}" ]; then
-        echo -n "Warning: Linux jail option can't be used with other options."
+        echo "Warning: Linux jail option can't be used with other options."
     fi
 elif [ -n "${CLONE_JAIL}" ] && [ -n "${THICK_JAIL}" ]; then
     error_exit "Error: Clonejail and Thickjail can't be used together."
