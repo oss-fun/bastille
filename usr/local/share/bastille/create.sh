@@ -179,6 +179,8 @@ ${NAME} {
   path = ${bastille_jail_path};
   securelevel = 2;
 
+
+	allow.raw_sockets;
   interface = ${bastille_jail_conf_interface};
   ${IP4_DEFINITION}
   ${IP6_DEFINITION}
@@ -196,12 +198,13 @@ ${NAME} {
   devfs_ruleset = 4;
   enforce_statfs = 1;
 
-  exec.start = '/bin/true';
-  exec.stop = '/bin/true';
+  exec.start = '';
+  exec.stop = '';
   persist;
 
   allow.mount;
   allow.mount.devfs;
+	allow.raw_sockets;
 
   interface = ${bastille_jail_conf_interface};
   ${ipx_addr} = ${IP};
@@ -560,7 +563,8 @@ create_jail() {
     ## Using templating function to fetch necessary packges @hackacad
     elif [ -n "${LINUX_JAIL}" ]; then
         info "Fetching packages..."
-        jexec -l "${NAME}" /bin/bash -c "DEBIAN_FRONTEND=noninteractive rm /var/cache/apt/archives/rsyslog*.deb"
+        jls
+				jexec -l "${NAME}" /bin/bash -c "DEBIAN_FRONTEND=noninteractive rm /var/cache/apt/archives/rsyslog*.deb"
         jexec -l "${NAME}" /bin/bash -c "DEBIAN_FRONTEND=noninteractive dpkg --force-depends --force-confdef --force-confold -i /var/cache/apt/archives/*.deb"
         jexec -l "${NAME}" /bin/bash -c "DEBIAN_FRONTEND=noninteractive dpkg --force-depends --force-confdef --force-confold -i /var/cache/apt/archives/*.deb"
         jexec -l "${NAME}" /bin/bash -c "chmod 777 /tmp"
@@ -675,7 +679,12 @@ fi
 
 if [ -n "${LINUX_JAIL}" ]; then
     case "${RELEASE}" in
-    bionic|ubuntu_bionic|ubuntu|ubuntu-bionic)
+    trusty|ubuntu_trusty|ubuntu-trusty)
+        ## check for FreeBSD releases name
+        NAME_VERIFY=ubuntu_trusty
+        ;;
+
+		bionic|ubuntu_bionic|ubuntu|ubuntu-bionic)
         ## check for FreeBSD releases name
         NAME_VERIFY=ubuntu_bionic
         ;;
@@ -745,7 +754,12 @@ if [ -z "${EMPTY_JAIL}" ]; then
         NAME_VERIFY=$(echo "${RELEASE}" | grep -iwE '(current-build-latest)' | sed 's/CURRENT/current/g' | sed 's/build/BUILD/g' | sed 's/latest/LATEST/g')
         validate_release
         ;;
-    ubuntu_bionic|bionic|ubuntu-bionic)
+    ubuntu_trusty|trusty|ubuntu-trusty)
+        UBUNTU="1"
+        NAME_VERIFY=Ubuntu_1404
+        validate_release
+        ;;
+		ubuntu_bionic|bionic|ubuntu-bionic)
         UBUNTU="1"
         NAME_VERIFY=Ubuntu_1804
         validate_release
