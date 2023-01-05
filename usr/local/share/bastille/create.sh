@@ -213,6 +213,33 @@ ${NAME} {
 EOF
 }
 
+generate_vnet_linux_jail_conf() {
+    NETBLOCK=$(generate_vnet_jail_netblock "$NAME" "${VNET_JAIL_BRIDGE}" "${bastille_jail_conf_interface}")
+    cat << EOF > "${bastille_jail_conf}"
+${NAME} {
+  host.hostname = ${NAME};
+  mount.fstab = ${bastille_jail_fstab};
+  path = ${bastille_jail_path};
+  devfs_ruleset = 4;
+  enforce_statfs = 1;
+
+  exec.start = '';
+  exec.stop = '';
+  persist;
+
+	vnet;
+	vnet.interface = "epair1b";
+  allow.mount;
+  allow.mount.devfs;
+	allow.raw_sockets;
+
+  interface = ${bastille_jail_conf_interface};
+  ${ipx_addr} = ${IP};
+  ip6 = ${IP6_MODE};
+}
+EOF
+}
+
 generate_vnet_jail_conf() {
     NETBLOCK=$(generate_vnet_jail_netblock "$NAME" "${VNET_JAIL_BRIDGE}" "${bastille_jail_conf_interface}")
     cat << EOF > "${bastille_jail_conf}"
@@ -220,11 +247,11 @@ ${NAME} {
   devfs_ruleset = 13;
   enforce_statfs = 2;
   exec.clean;
-  #exec.consolelog = ${bastille_jail_log};
+  exec.consolelog = ${bastille_jail_log};
   exec.start = '/bin/true'
 	exec.stop = '/bin/true'
-	#exec.start = '/bin/sh /etc/rc';
-  #exec.stop = '/bin/sh /etc/rc.shutdown';
+	exec.start = '/bin/sh /etc/rc';
+  exec.stop = '/bin/sh /etc/rc.shutdown';
   host.hostname = ${NAME};
   mount.devfs;
   mount.fstab = ${bastille_jail_fstab};
@@ -266,7 +293,11 @@ post_create_jail() {
 
     # Generate the jail configuration file.
     if [ -n "${VNET_JAIL}" ]; then
-        generate_vnet_jail_conf
+        if [ -z "${LINUX_JAIL}"]; then
+					generate_vnet_jail_conf
+				else
+					echo "linux + vnet jail!"
+				fi
     else
         generate_jail_conf
     fi
@@ -482,7 +513,11 @@ create_jail() {
         fi
     elif [ -n "${LINUX_JAIL}" ]; then
         ## Generate configuration for Linux jail
-        generate_linux_jail_conf
+        if [ -n "${VNET_JAIL}"]; then
+						generate_vnet_linux_jail_conf
+				else
+						generate_linux_jail_conf
+				fi
     elif [ -n "${EMPTY_JAIL}" ]; then
         ## Generate minimal configuration for empty jail
         generate_minimal_conf
@@ -501,7 +536,7 @@ create_jail() {
         fi
     fi
 
-    if [ -n "${VNET_JAIL}" ]; then
+    if [ -n "${VNET_JAIL}" && -z "${LINUX_JAIL}" ]; then
         if [ -n "${bastille_template_vnet}" ]; then
             ## rename interface to generic vnet0
             uniq_epair=$(grep vnet.interface "${bastille_jailsdir}/${NAME}/jail.conf" | awk '{print $3}' | sed 's/;//')
@@ -563,13 +598,15 @@ create_jail() {
     ## Using templating function to fetch necessary packges @hackacad
     elif [ -n "${LINUX_JAIL}" ]; then
         info "Fetching packages..."
-        jls
 				jexec -l "${NAME}" /bin/bash -c "DEBIAN_FRONTEND=noninteractive rm /var/cache/apt/archives/rsyslog*.deb"
         jexec -l "${NAME}" /bin/bash -c "DEBIAN_FRONTEND=noninteractive dpkg --force-depends --force-confdef --force-confold -i /var/cache/apt/archives/*.deb"
         jexec -l "${NAME}" /bin/bash -c "DEBIAN_FRONTEND=noninteractive dpkg --force-depends --force-confdef --force-confold -i /var/cache/apt/archives/*.deb"
         jexec -l "${NAME}" /bin/bash -c "chmod 777 /tmp"
-        jexec -l "${NAME}" /bin/bash -c "apt update"
-    else
+        #jexec -l "${NAME}" /bin/bash -c "apt update"
+    	if [ -n "${VNET_JAIL}" ]; then
+				info "vnet setting to linux jail."
+			fi
+		else
         # Thin jail.
         if [ -n "${bastille_template_thin}" ]; then
             bastille template "${NAME}" ${bastille_template_thin} --arg BASE_TEMPLATE="${bastille_template_base}" --arg HOST_RESOLV_CONF="${bastille_resolv_conf}"
@@ -676,7 +713,7 @@ fi
 if [ -n "${NAME}" ]; then
     validate_name
 fi
-
+/
 if [ -n "${LINUX_JAIL}" ]; then
     case "${RELEASE}" in
     trusty|ubuntu_trusty|ubuntu-trusty)
@@ -808,7 +845,7 @@ if [ -z "${EMPTY_JAIL}" ]; then
     if [ -n "${INTERFACE}" ]; then
         validate_netif
         validate_netconf
-    elif [ -n "${VNET_JAIL}" ]; then
+    elif [ -n "${VNET_JAIL}" $$ -z "${LINUX_JAIL}"]; then
         if [ -z "${INTERFACE}" ]; then
             if [ -z "${bastille_network_shared}" ]; then
                 # User must specify interface on vnet jails.
@@ -817,7 +854,9 @@ if [ -z "${EMPTY_JAIL}" ]; then
                 validate_netconf
             fi
         fi
-    else
+		elif [-n "${LINUX_JAIL}"]; then
+				echo "linux vnet jail!"
+		else
         validate_netconf
     fi
 else
