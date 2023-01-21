@@ -544,6 +544,13 @@ http?://*/*/*)
     bootstrap_template
     ;;
 #adding Ubuntu Bionic as valid "RELEASE" for POC @hackacad
+ubuntu_trusty|trusty|ubuntu-trusty)
+		PLATFORM_OS="Ubuntu/Linux"
+    LINUX_FLAVOR="trusty"
+    DIR_BOOTSTRAP="Ubuntu_1404"
+    ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
+    debootstrap_release
+    ;;
 ubuntu_bionic|bionic|ubuntu-bionic)
     PLATFORM_OS="Ubuntu/Linux"
     LINUX_FLAVOR="bionic"
