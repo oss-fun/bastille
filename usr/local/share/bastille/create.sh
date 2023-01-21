@@ -214,7 +214,7 @@ EOF
 }
 
 generate_vnet_linux_jail_conf() {
-    NETBLOCK=$(generate_vnet_jail_netblock "$NAME" "${VNET_JAIL_BRIDGE}" "${bastille_jail_conf_interface}")
+    NETBLOCK=$(generate_vnet_jail_netblock "$NAME" "${VNET_JAIL_BRIDGE}" "${bastille_jail_conf_interface}" "Linux")
     cat << EOF > "${bastille_jail_conf}"
 ${NAME} {
   host.hostname = ${NAME};
@@ -227,15 +227,11 @@ ${NAME} {
   exec.stop = '';
   persist;
 
-	vnet;
-	vnet.interface = "epair1b";
   allow.mount;
   allow.mount.devfs;
-	allow.raw_sockets;
+  allow.raw_sockets;
 
-  interface = ${bastille_jail_conf_interface};
-  ${ipx_addr} = ${IP};
-  ip6 = ${IP6_MODE};
+${NETBLOCK}
 }
 EOF
 }
@@ -713,7 +709,6 @@ fi
 if [ -n "${NAME}" ]; then
     validate_name
 fi
-/
 if [ -n "${LINUX_JAIL}" ]; then
     case "${RELEASE}" in
     trusty|ubuntu_trusty|ubuntu-trusty)
@@ -854,9 +849,9 @@ if [ -z "${EMPTY_JAIL}" ]; then
                 validate_netconf
             fi
         fi
-		elif [-n "${LINUX_JAIL}"]; then
-				echo "linux vnet jail!"
-		else
+    elif [-n "${LINUX_JAIL}"]; then
+      echo "linux vnet jail!"
+    else
         validate_netconf
     fi
 else
