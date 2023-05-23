@@ -234,12 +234,13 @@ EOF
 generate_linux_vnet_jail_conf() {
 	cat << EOF > "${bastille_jail_conf}"
 ${NAME} {
+	host.hostname = ${NAME};
 	devfs_ruleset = 0;
 	enforce_statfs = 1;
 	
 	exec.start = '';
 	exec.stop = '';
-	host.hostname = ${NAME};
+	
 	mount.devfs;
 	mount.fstab = ${bastille_jail_fstab};
 	path = ${bastille_jail_path};
@@ -247,6 +248,7 @@ ${NAME} {
 
   allow.mount;
   allow.mount.devfs;
+	vnet;
 }
 EOF
 }
@@ -501,10 +503,12 @@ create_jail() {
         fi
     elif [ -n "${LINUX_JAIL}" ]; then
         ## Generate configuration for Linux jail
-        if [-n "${VNET_JAIL}" ]; then
-					generate_vnet_linux_jail_conf
+        if [ -n "${VNET_JAIL}" ]; then
+					generate_linux_vnet_jail_conf
+					echo "generate linux vnet jail"
 				else
 					generate_linux_jail_conf
+					echo "generate linux jail"
 				fi
     elif [ -n "${EMPTY_JAIL}" ]; then
         ## Generate minimal configuration for empty jail
@@ -633,27 +637,33 @@ while [ $# -gt 0 ]; do
     case "${1}" in
         -E|--empty|empty)
             EMPTY_JAIL="1"
+						echo "EMPTY: ON"
             shift
             ;;
         -L|--linux|linux)
             LINUX_JAIL="1"
+						echo "LINUX: ON"
             shift
             ;;
         -T|--thick|thick)
             THICK_JAIL="1"
+						echo "THICK: ON"
             shift
             ;;
         -V|--vnet|vnet)
             VNET_JAIL="1"
+						echo "VNET: ON"
             shift
             ;;
         -B|--bridge|bridge)
             VNET_JAIL="1"
             VNET_JAIL_BRIDGE="1"
+						echo "BRIDGE: ON"
             shift
             ;;
         -C|--clone|clone)
             CLONE_JAIL="1"
+						echo "CLONE: ON"
             shift
             ;;
         -*|--*)
