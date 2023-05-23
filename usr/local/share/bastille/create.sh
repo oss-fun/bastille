@@ -231,6 +231,26 @@ ${NETBLOCK}
 EOF
 }
 
+generate_linux_vnet_jail_conf() {
+	cat << EOF > "${bastille_jail_conf}"
+${NAME} {
+	devfs_ruleset = 0;
+	enforce_statfs = 1;
+	
+	exec.start = '';
+	exec.stop = '';
+	host.hostname = ${NAME};
+	mount.devfs;
+	mount.fstab = ${bastille_jail_fstab};
+	path = ${bastille_jail_path};
+	persist;
+
+  allow.mount;
+  allow.mount.devfs;
+}
+EOF
+}
+
 post_create_jail() {
     # Common config checks and settings.
 
@@ -261,7 +281,9 @@ post_create_jail() {
 
     # Generate the jail configuration file.
     if [ -n "${VNET_JAIL}" ]; then
-        generate_vnet_jail_conf
+        if [ -z "${LINUX_JAIL}" ]; then
+					generate_vnet_jail_conf
+				fi
     else
         generate_jail_conf
     fi
@@ -479,7 +501,11 @@ create_jail() {
         fi
     elif [ -n "${LINUX_JAIL}" ]; then
         ## Generate configuration for Linux jail
-        generate_linux_jail_conf
+        if [-n "${VNET_JAIL}" ]; then
+					generate_vnet_linux_jail_conf
+				else
+					generate_linux_jail_conf
+				fi
     elif [ -n "${EMPTY_JAIL}" ]; then
         ## Generate minimal configuration for empty jail
         generate_minimal_conf
@@ -498,7 +524,7 @@ create_jail() {
         fi
     fi
 
-    if [ -n "${VNET_JAIL}" ]; then
+    if [ -n "${VNET_JAIL}" && -z "${LINUX_JAIL}" ]; then
         if [ -n "${bastille_template_vnet}" ]; then
             ## rename interface to generic vnet0
             uniq_epair=$(grep vnet.interface "${bastille_jailsdir}/${NAME}/jail.conf" | awk '{print $3}' | sed 's/;//')
@@ -748,6 +774,11 @@ if [ -z "${EMPTY_JAIL}" ]; then
         NAME_VERIFY=$(echo "${RELEASE}" | grep -iwE '(current-build-latest)' | sed 's/CURRENT/current/g' | sed 's/build/BUILD/g' | sed 's/latest/LATEST/g')
         validate_release
         ;;
+		ubuntu_trusty|trusty|ubuntu-trusty)
+				UBUNTU="1"
+				NAME_VERIFY=Ubuntu_1404
+				validate_release
+				;;
     ubuntu_bionic|bionic|ubuntu-bionic)
         UBUNTU="1"
         NAME_VERIFY=Ubuntu_1804
