@@ -349,20 +349,26 @@ create_jail() {
         echo -e "/tmp            ${bastille_jail_path}/tmp      nullfs          rw                      0       0" >> "${bastille_jail_fstab}"
         ## removed temporarely / only for X11 jails? @hackacad
         #echo -e "/home           ${bastille_jail_path}/home     nullfs          rw                      0       0" >> "${bastille_jail_fstab}"
-
+				# linux network settings
+				echo "${bastille_jail_conf}"
         if [ ! -f "${bastille_jail_conf}" ]; then
-            if [ -z "${bastille_network_loopback}" ] && [ -n "${bastille_network_shared}" ]; then
-                local bastille_jail_conf_interface=${bastille_network_shared}
-            fi
-            if [ -n "${bastille_network_loopback}" ] && [ -z "${bastille_network_shared}" ]; then
-                local bastille_jail_conf_interface=${bastille_network_loopback}
-            fi
-            if [ -n "${INTERFACE}" ]; then
-                local bastille_jail_conf_interface=${INTERFACE}
-            fi
+            if [ -n "${VNET_JAIL}" ]; then
+								# linux jail vnet 
+								echo "linux jail + vnet"
+						else
+								if [ -z "${bastille_network_loopback}" ] && [ -n "${bastille_network_shared}" ]; then
+										local bastille_jail_conf_interface=${bastille_network_shared}
+								fi
+								if [ -n "${bastille_network_loopback}" ] && [ -z "${bastille_network_shared}" ]; then
+										local bastille_jail_conf_interface=${bastille_network_loopback}
+								fi
+								if [ -n "${INTERFACE}" ]; then
+										local bastille_jail_conf_interface=${INTERFACE}
+								fi
+						fi
         fi
     fi
-
+		# mark not linux
     if [ -z "${EMPTY_JAIL}" ] && [ -z "${LINUX_JAIL}" ]; then
         if [ -z "${THICK_JAIL}" ] && [ -z "${CLONE_JAIL}" ]; then
             if [ ! -d "${bastille_jail_base}" ]; then
@@ -492,23 +498,19 @@ create_jail() {
 
         ## VNET specific
         if [ -n "${VNET_JAIL}" ]; then
-						if [ -z "${LINUX_JAIL}" ]; then
             ## VNET requires jib script
-							if [ ! "$(command -v jib)" ]; then
-									if [ -f /usr/share/examples/jails/jib ] && [ ! -f /usr/local/bin/jib ]; then
-											install -m 0544 /usr/share/examples/jails/jib /usr/local/bin/jib
-									fi
-							fi
+						if [ ! "$(command -v jib)" ]; then
+								if [ -f /usr/share/examples/jails/jib ] && [ ! -f /usr/local/bin/jib ]; then
+										install -m 0544 /usr/share/examples/jails/jib /usr/local/bin/jib
+								fi
 						fi
         fi
     elif [ -n "${LINUX_JAIL}" ]; then
         ## Generate configuration for Linux jail
         if [ -n "${VNET_JAIL}" ]; then
-					generate_linux_vnet_jail_conf
-					echo "generate linux vnet jail"
+						generate_linux_vnet_jail_conf
 				else
-					generate_linux_jail_conf
-					echo "generate linux jail"
+						generate_linux_jail_conf
 				fi
     elif [ -n "${EMPTY_JAIL}" ]; then
         ## Generate minimal configuration for empty jail
@@ -527,7 +529,7 @@ create_jail() {
             bastille start "${NAME}"
         fi
     fi
-
+		#vnet settings
     if [ -n "${VNET_JAIL}" && -z "${LINUX_JAIL}" ]; then
         if [ -n "${bastille_template_vnet}" ]; then
             ## rename interface to generic vnet0
