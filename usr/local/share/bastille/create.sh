@@ -731,6 +731,9 @@ if [ -n "${LINUX_JAIL}" ]; then
 		ubuntu_trusty|trusty|ubuntu-trusty)
     		NAME_VERIFY=ubuntu_trusty
 				;;
+		ubuntu_xenial|xenial|ubuntu-xenial)
+				NAME_VERIFY=ubuntu_xenial
+				;;
     bionic|ubuntu_bionic|ubuntu|ubuntu-bionic)
         ## check for FreeBSD releases name
         NAME_VERIFY=ubuntu_bionic
@@ -804,6 +807,11 @@ if [ -z "${EMPTY_JAIL}" ]; then
 		ubuntu_trusty|trusty|ubuntu-trusty)
 				UBUNTU="1"
 				NAME_VERIFY=Ubuntu_1404
+				validate_release
+				;;
+		ubuntu_xenial|xenial|ubuntu-xenial)
+				UBUNTU="1"
+				NAME_VERIFY=Ubuntu_1604
 				validate_release
 				;;
     ubuntu_bionic|bionic|ubuntu-bionic)

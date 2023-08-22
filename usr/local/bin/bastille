@@ -73,7 +73,7 @@ bastille_perms_check() {
 bastille_perms_check
 
 ## version
-BASTILLE_VERSION=335af9ff51cb3eb7c9448429224700da85564cf8
+BASTILLE_VERSION=31ae84c513f73cfbfa381699bc73b15a631beb7b
 
 usage() {
     cat << EOF
