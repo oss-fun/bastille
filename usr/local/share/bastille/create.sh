@@ -253,6 +253,62 @@ ${NAME} {
 EOF
 }
 
+vnet_setting() {
+		## rename interface to generic vnet0
+		uniq_epair=$(grep vnet.interface "${bastille_jailsdir}/${NAME}/jail.conf" | awk '{print $3}' | sed 's/;//')
+		echo "find unique epair! ${uniq_epair}"
+
+		_gateway=''
+		_gateway6=''
+		_ifconfig_inet=''
+		_ifconfig_inet6=''
+		if echo "${IP}" | grep -qE '(0[.]0[.]0[.]0|DHCP)'; then
+				# Enable DHCP if requested
+				_ifconfig_inet=SYNCDHCP
+		else
+				# Else apply the default gateway
+				if [ -n "${bastille_network_gateway}" ]; then
+						_gateway="${bastille_network_gateway}"
+				else
+						_gateway="$(netstat -rn | awk '/default/ {print $2}')"
+				fi
+				echo "_gateway = ${_gateway}"
+		fi
+		echo "${_gateway}"
+		# Add IPv4 address (this is empty if DHCP is used)
+		if [ -n "${IP4_ADDR}" ]; then
+						_ifconfig_inet="${_ifconfig_inet} inet ${IP4_ADDR}"
+		fi
+		# Enable IPv6 if used
+		if [ "${IP6_MODE}" != "disable" ]; then
+				_ifconfig_inet6='inet6 -ifdisabled'
+				if echo "${IP}" | grep -qE 'SLAAC'; then
+						# Enable SLAAC if requested
+						_ifconfig_inet6="${_ifconfig_inet6} accept_rtadv"
+				else
+						# Else apply the default gateway
+						if [ -n "${bastille_network_gateway6}" ]; then
+								_gateway6="${bastille_network_gateway6}"
+						else
+								_gateway6="$(netstat -6rn | awk '/default/ {print $2}')"
+						fi
+				fi
+		fi
+		# Add IPv6 address (this is empty if SLAAC is used)
+		if [ -n "${IP6_ADDR}" ]; then
+						_ifconfig_inet6="${_ifconfig_inet6} ${IP6_ADDR}"
+		fi
+		# Join together IPv4 and IPv6 parts of ifconfig
+		_ifconfig="${_ifconfig_inet} ${_ifconfig_inet6}"
+		bastille template "${NAME}" ${bastille_template_vnet} \
+			--arg BASE_TEMPLATE="${bastille_template_base}" \
+			--arg HOST_RESOLV_CONF="${bastille_resolv_conf}" \
+			--arg EPAIR="${uniq_epair}" \
+			--arg GATEWAY="${_gateway}" \
+			--arg GATEWAY6="${_gateway6}" \
+			--arg IFCONFIG="${_ifconfig}"
+}
+
 post_create_jail() {
     # Common config checks and settings.
 
@@ -355,6 +411,7 @@ create_jail() {
             if [ -n "${VNET_JAIL}" ]; then
 								# linux jail vnet 
 								echo "linux jail + vnet"
+								vnet_settings
 						else
 								if [ -z "${bastille_network_loopback}" ] && [ -n "${bastille_network_shared}" ]; then
 										local bastille_jail_conf_interface=${bastille_network_shared}
@@ -498,6 +555,7 @@ create_jail() {
 
         ## VNET specific
         if [ -n "${VNET_JAIL}" ]; then
+						vnet_settings
             ## VNET requires jib script
 						if [ ! "$(command -v jib)" ]; then
 								if [ -f /usr/share/examples/jails/jib ] && [ ! -f /usr/local/bin/jib ]; then
@@ -532,51 +590,8 @@ create_jail() {
 		#vnet settings
     if [ -n "${VNET_JAIL}" && -z "${LINUX_JAIL}" ]; then
         if [ -n "${bastille_template_vnet}" ]; then
-            ## rename interface to generic vnet0
-            uniq_epair=$(grep vnet.interface "${bastille_jailsdir}/${NAME}/jail.conf" | awk '{print $3}' | sed 's/;//')
-
-            _gateway=''
-            _gateway6=''
-            _ifconfig_inet=''
-            _ifconfig_inet6=''
-            if echo "${IP}" | grep -qE '(0[.]0[.]0[.]0|DHCP)'; then
-                # Enable DHCP if requested
-                _ifconfig_inet=SYNCDHCP
-            else
-                # Else apply the default gateway
-                if [ -n "${bastille_network_gateway}" ]; then
-                    _gateway="${bastille_network_gateway}"
-                else
-                    _gateway="$(netstat -rn | awk '/default/ {print $2}')"
-                fi
-            fi
-            # Add IPv4 address (this is empty if DHCP is used)
-            if [ -n "${IP4_ADDR}" ]; then
-                    _ifconfig_inet="${_ifconfig_inet} inet ${IP4_ADDR}"
-            fi
-            # Enable IPv6 if used
-            if [ "${IP6_MODE}" != "disable" ]; then
-                _ifconfig_inet6='inet6 -ifdisabled'
-                if echo "${IP}" | grep -qE 'SLAAC'; then
-                    # Enable SLAAC if requested
-                    _ifconfig_inet6="${_ifconfig_inet6} accept_rtadv"
-                else
-                    # Else apply the default gateway
-                    if [ -n "${bastille_network_gateway6}" ]; then
-                        _gateway6="${bastille_network_gateway6}"
-                    else
-                        _gateway6="$(netstat -6rn | awk '/default/ {print $2}')"
-                    fi
-                fi
-            fi
-            # Add IPv6 address (this is empty if SLAAC is used)
-            if [ -n "${IP6_ADDR}" ]; then
-                    _ifconfig_inet6="${_ifconfig_inet6} ${IP6_ADDR}"
-            fi
-            # Join together IPv4 and IPv6 parts of ifconfig
-            _ifconfig="${_ifconfig_inet} ${_ifconfig_inet6}"
-            bastille template "${NAME}" ${bastille_template_vnet} --arg BASE_TEMPLATE="${bastille_template_base}" --arg HOST_RESOLV_CONF="${bastille_resolv_conf}" --arg EPAIR="${uniq_epair}" --arg GATEWAY="${_gateway}" --arg GATEWAY6="${_gateway6}" --arg IFCONFIG="${_ifconfig}"
-        fi
+            vnet_setting
+				fi
     elif [ -n "${THICK_JAIL}" ]; then
         if [ -n "${bastille_template_thick}" ]; then
             bastille template "${NAME}" ${bastille_template_thick} --arg BASE_TEMPLATE="${bastille_template_base}" --arg HOST_RESOLV_CONF="${bastille_resolv_conf}"
@@ -888,6 +903,9 @@ if [ -z ${bastille_template_thin+x} ]; then
 fi
 if [ -z ${bastille_template_vnet+x} ]; then
     bastille_template_vnet='default/vnet'
+fi
+if [ -z ${bastille_template_vnet_linux+x} ]; then
+	bastille_template_vnet_linux='default/vnet_linux'
 fi
 
 create_jail "${NAME}" "${RELEASE}" "${IP}" "${INTERFACE}"

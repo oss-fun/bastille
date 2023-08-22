@@ -551,6 +551,13 @@ ubuntu_trusty|trusty|ubuntu-trusty)
     ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
     debootstrap_release
     ;;
+ubuntu_xenial|xenial|ubuntu-xenial)
+		PLATFORM_OS"Ubuntu/Linux"
+		LINUX_FLAVOR="xenial"
+		DIR_BOOTSTRAP="Ubuntu_1604"
+		ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
+		debootstrap_release
+		;;
 ubuntu_bionic|bionic|ubuntu-bionic)
     PLATFORM_OS="Ubuntu/Linux"
     LINUX_FLAVOR="bionic"
