@@ -742,6 +742,12 @@ if [ -n "${LINUX_JAIL}" ]; then
         ## check for FreeBSD releases name
         NAME_VERIFY=ubuntu_focal
         ;;
+		hirsute|ubuntu_hirsute|ubuntu-hirsute)
+				NAME_VERIFY=ubuntu_hirsute
+				;;
+		jammy|ubuntu_jammy|ubuntu-jammy)
+				NAME_VERIFY=ubuntu_jammy
+				;;
     debian_stretch|stretch|debian-stretch)
         ## check for FreeBSD releases name
         NAME_VERIFY=stretch
@@ -824,6 +830,16 @@ if [ -z "${EMPTY_JAIL}" ]; then
         NAME_VERIFY=Ubuntu_2004
         validate_release
         ;;
+		ubuntu_hirsute|hirsute|ubuntu-hirsute)
+				UBUNTU="1"
+				NAME_VERIFY=Ubuntu_2104
+				validate_release
+				;;
+		ubuntu_jammy|jammy|ubuntu-jammy)
+				UBUNTU="1"
+				NAME_VERIFY=Ubuntu_2204
+				validate_release
+				;;
     debian_stretch|stretch|debian-stretch)
         NAME_VERIFY=Debian9
         validate_release

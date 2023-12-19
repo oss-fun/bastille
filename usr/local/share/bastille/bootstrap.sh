@@ -380,6 +380,9 @@ debootstrap_release() {
     # Fetch the Linux flavor
     info "Bootstrapping ${PLATFORM_OS} distfiles..."
     if ! debootstrap --foreign --arch=${ARCH_BOOTSTRAP} --no-check-gpg ${LINUX_FLAVOR} "${bastille_releasesdir}"/${DIR_BOOTSTRAP}; then
+				info "LINUX_FLAVOR=${LINUX_FLAVOR}"
+				info "bastille_releasesdir=${bastille_releasesdir}"
+				info "DIR_BOOTSTRAP=${DIR_BOOTSTRAP}"
         ## perform cleanup only for stale/empty directories on failure
         if [ "${bastille_zfs_enable}" = "YES" ]; then
             if [ -n "${bastille_zfs_zpool}" ]; then
@@ -397,7 +400,7 @@ debootstrap_release() {
     fi
 
     case "${LINUX_FLAVOR}" in
-        bionic|stretch|buster|bullseye)
+        stretch|buster|bullseye)
         info "Increasing APT::Cache-Start"
         echo "APT::Cache-Start 251658240;" > "${bastille_releasesdir}"/${DIR_BOOTSTRAP}/etc/apt/apt.conf.d/00aptitude
         ;;
@@ -572,6 +575,20 @@ ubuntu_focal|focal|ubuntu-focal)
     ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
     debootstrap_release
     ;;
+ubuntu_hirsute|hirsute|ubuntu-hirsute)
+		PLATFORM_OS="Ubuntu/Linux"
+		LINUX_FLAVOR="hirsute"
+		DIR_BOOTSTRAP="Ubuntu_2104"
+		ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
+		debootstrap_release
+		;;
+	ubuntu_jammy|jammy|ubuntu-jammy)
+		PLATFORM_OS="Ubuntu/Linux"
+		LINUX_FLAVOR="jammy"
+		DIR_BOOTSTRAP="Ubuntu_2204"
+		ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
+		debootstrap_release
+		;;
 debian_stretch|stretch|debian-stretch)
     PLATFORM_OS="Debian/Linux"
     LINUX_FLAVOR="stretch"
