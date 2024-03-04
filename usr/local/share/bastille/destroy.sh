@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2018-2022, Christer Edwards <christer.edwards@gmail.com>
+# Copyright (c) 2018-2023, Christer Edwards <christer.edwards@gmail.com>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@ destroy_jail() {
 
     if [ -d "${bastille_jail_base}" ]; then
         info "Deleting Jail: ${TARGET}."
-        if [ "${bastille_zfs_enable}" = "YES" ]; then
+        if checkyesno bastille_zfs_enable; then
             if [ -n "${bastille_zfs_zpool}" ]; then
                 if [ -n "${TARGET}" ]; then
                     OPTIONS="-r"
@@ -118,7 +118,7 @@ destroy_rel() {
             if grep -qwo "${TARGET}" "${bastille_jailsdir}/${_jail}/fstab" 2>/dev/null; then
                 error_notify "Notice: (${_jail}) depends on ${TARGET} base."
                 BASE_HASCHILD="1"
-            elif [ "${bastille_zfs_enable}" = "YES" ]; then
+            elif checkyesno bastille_zfs_enable; then
                 if [ -n "${bastille_zfs_zpool}" ]; then
                     ## check if this release have child clones
                     if zfs list -H -t snapshot -r "${bastille_rel_base}" > /dev/null 2>&1; then
@@ -144,7 +144,7 @@ destroy_rel() {
     else
         if [ "${BASE_HASCHILD}" -eq "0" ]; then
             info "Deleting base: ${TARGET}"
-            if [ "${bastille_zfs_enable}" = "YES" ]; then
+            if checkyesno bastille_zfs_enable; then
                 if [ -n "${bastille_zfs_zpool}" ]; then
                     if [ -n "${TARGET}" ]; then
                         OPTIONS="-r"
@@ -210,6 +210,8 @@ if [ $# -gt 1 ] || [ $# -lt 1 ]; then
     usage
 fi
 
+bastille_root_check
+
 ## check what should we clean
 case "${TARGET}" in
 *-CURRENT|*-CURRENT-I386|*-CURRENT-i386|*-current)
@@ -217,9 +219,9 @@ case "${TARGET}" in
     NAME_VERIFY=$(echo "${TARGET}" | grep -iwE '^([1-9]{2,2})\.[0-9](-CURRENT|-CURRENT-i386)$' | tr '[:lower:]' '[:upper:]' | sed 's/I/i/g')
     destroy_rel
     ;;
-*-RELEASE|*-RELEASE-I386|*-RELEASE-i386|*-release|*-RC1|*-rc1|*-RC2|*-rc2|*-RC3|*-rc3|*-RC4|*-rc4|*-RC5|*-rc5|*-BETA1|*-BETA2|*-BETA3|*-BETA4|*-BETA5)
+*-RELEASE|*-RELEASE-I386|*-RELEASE-i386|*-release|*-RC[1-9]|*-rc[1-9]|*-BETA[1-9])
     ## check for FreeBSD releases name
-    NAME_VERIFY=$(echo "${TARGET}" | grep -iwE '^([1-9]{2,2})\.[0-9](-RELEASE|-RELEASE-i386|-RC[1-5]|-BETA[1-5])$' | tr '[:lower:]' '[:upper:]' | sed 's/I/i/g')
+    NAME_VERIFY=$(echo "${TARGET}" | grep -iwE '^([1-9]{2,2})\.[0-9](-RELEASE|-RELEASE-i386|-RC[1-9]|-BETA[1-9])$' | tr '[:lower:]' '[:upper:]' | sed 's/I/i/g')
     destroy_rel
     ;;
 *-stable-LAST|*-STABLE-last|*-stable-last|*-STABLE-LAST)
@@ -247,14 +249,14 @@ current-build-latest|current-BUILD-LATEST|CURRENT-BUILD-LATEST)
     NAME_VERIFY=$(echo "${TARGET}" | grep -iwE '(current-build-latest)$' | sed 's/CURRENT/current/;s/build/BUILD/g;s/latest/LATEST/g')
     destroy_rel
     ;;
-Ubuntu_1804|Ubuntu_2004|UBUNTU_1804|UBUNTU_2004)
+Ubuntu_1804|Ubuntu_2004|Ubuntu_2204|UBUNTU_1804|UBUNTU_2004|UBUNTU_2204)
     ## check for Linux releases
-    NAME_VERIFY=$(echo "${TARGET}" | grep -iwE '(Ubuntu_1804)$|(Ubuntu_2004)$' | sed 's/UBUNTU/Ubuntu/g;s/ubuntu/Ubuntu/g')
+    NAME_VERIFY=$(echo "${TARGET}" | grep -iwE '(Ubuntu_1804)$|(Ubuntu_2004)$|(Ubuntu_2204)$' | sed 's/UBUNTU/Ubuntu/g;s/ubuntu/Ubuntu/g')
     destroy_rel
     ;;
-Debian9|Debian10|Debian11|DEBIAN9|DEBIAN10|DEBIAN11)
+Debian10|Debian11|Debian12|DEBIAN10|DEBIAN11|DEBIAN12)
     ## check for Linux releases
-    NAME_VERIFY=$(echo "${TARGET}" | grep -iwE '(Debian9)$|(Debian10)$|(Debian11)$' | sed 's/DEBIAN/Debian/g')
+    NAME_VERIFY=$(echo "${TARGET}" | grep -iwE '(Debian10)$|(Debian11)$|(Debian12)$' | sed 's/DEBIAN/Debian/g')
     destroy_rel
     ;;
 *)

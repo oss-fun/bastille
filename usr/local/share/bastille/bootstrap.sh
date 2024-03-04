@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2018-2022, Christer Edwards <christer.edwards@gmail.com>
+# Copyright (c) 2018-2023, Christer Edwards <christer.edwards@gmail.com>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,8 +42,10 @@ help|-h|--help)
     ;;
 esac
 
+bastille_root_check
+
 #Validate if ZFS is enabled in rc.conf and bastille.conf.
-if [ "$(sysrc -n zfs_enable)" = "YES" ] && [ ! "${bastille_zfs_enable}" = "YES" ]; then
+if [ "$(sysrc -n zfs_enable)" = "YES" ] && ! checkyesno bastille_zfs_enable; then
     warn "ZFS is enabled in rc.conf but not bastille.conf. Do you want to continue? (N|y)"
     read answer
     case $answer in
@@ -55,7 +57,7 @@ if [ "$(sysrc -n zfs_enable)" = "YES" ] && [ ! "${bastille_zfs_enable}" = "YES" 
 fi
 
 # Validate ZFS parameters.
-if [ "${bastille_zfs_enable}" = "YES" ]; then
+if checkyesno bastille_zfs_enable; then
     ## check for the ZFS pool and bastille prefix
     if [ -z "${bastille_zfs_zpool}" ]; then
         error_exit "ERROR: Missing ZFS parameters. See bastille_zfs_zpool."
@@ -100,7 +102,7 @@ bootstrap_directories() {
 
     ## ${bastille_prefix}
     if [ ! -d "${bastille_prefix}" ]; then
-        if [ "${bastille_zfs_enable}" = "YES" ];then
+        if checkyesno bastille_zfs_enable; then
             if [ -n "${bastille_zfs_zpool}" ]; then
                 zfs create ${bastille_zfs_options} -o mountpoint="${bastille_prefix}" "${bastille_zfs_zpool}/${bastille_zfs_prefix}"
             fi
@@ -112,7 +114,7 @@ bootstrap_directories() {
 
     ## ${bastille_backupsdir}
     if [ ! -d "${bastille_backupsdir}" ]; then
-        if [ "${bastille_zfs_enable}" = "YES" ];then
+        if checkyesno bastille_zfs_enable; then
             if [ -n "${bastille_zfs_zpool}" ]; then
                 zfs create ${bastille_zfs_options} -o mountpoint="${bastille_backupsdir}" "${bastille_zfs_zpool}/${bastille_zfs_prefix}/backups"
             fi
@@ -124,7 +126,7 @@ bootstrap_directories() {
 
     ## ${bastille_cachedir}
     if [ ! -d "${bastille_cachedir}" ]; then
-        if [ "${bastille_zfs_enable}" = "YES" ]; then
+        if checkyesno bastille_zfs_enable; then
             if [ -n "${bastille_zfs_zpool}" ]; then
                 zfs create ${bastille_zfs_options} -o mountpoint="${bastille_cachedir}" "${bastille_zfs_zpool}/${bastille_zfs_prefix}/cache"
                 # Don't create unused/stale cache/RELEASE directory on Linux jails creation.
@@ -143,7 +145,7 @@ bootstrap_directories() {
     elif [ ! -d "${bastille_cachedir}/${RELEASE}" ]; then
         # Don't create unused/stale cache/RELEASE directory on Linux jails creation.
         if [ -z "${NOCACHEDIR}" ]; then
-            if [ "${bastille_zfs_enable}" = "YES" ]; then
+            if checkyesno bastille_zfs_enable; then
                 if [ -n "${bastille_zfs_zpool}" ]; then
                     zfs create ${bastille_zfs_options} -o mountpoint="${bastille_cachedir}/${RELEASE}" "${bastille_zfs_zpool}/${bastille_zfs_prefix}/cache/${RELEASE}"
                 fi
@@ -155,7 +157,7 @@ bootstrap_directories() {
 
     ## ${bastille_jailsdir}
     if [ ! -d "${bastille_jailsdir}" ]; then
-        if [ "${bastille_zfs_enable}" = "YES" ]; then
+        if checkyesno bastille_zfs_enable; then
             if [ -n "${bastille_zfs_zpool}" ]; then
                 zfs create ${bastille_zfs_options} -o mountpoint="${bastille_jailsdir}" "${bastille_zfs_zpool}/${bastille_zfs_prefix}/jails"
             fi
@@ -166,7 +168,7 @@ bootstrap_directories() {
 
     ## ${bastille_logsdir}
     if [ ! -d "${bastille_logsdir}" ]; then
-        if [ "${bastille_zfs_enable}" = "YES" ]; then
+        if checkyesno bastille_zfs_enable; then
             if [ -n "${bastille_zfs_zpool}" ]; then
                 zfs create ${bastille_zfs_options} -o mountpoint="${bastille_logsdir}" "${bastille_zfs_zpool}/${bastille_zfs_prefix}/logs"
             fi
@@ -177,7 +179,7 @@ bootstrap_directories() {
 
     ## ${bastille_templatesdir}
     if [ ! -d "${bastille_templatesdir}" ]; then
-        if [ "${bastille_zfs_enable}" = "YES" ]; then
+        if checkyesno bastille_zfs_enable; then
             if [ -n "${bastille_zfs_zpool}" ]; then
                 zfs create ${bastille_zfs_options} -o mountpoint="${bastille_templatesdir}" "${bastille_zfs_zpool}/${bastille_zfs_prefix}/templates"
             fi
@@ -188,7 +190,7 @@ bootstrap_directories() {
 
     ## ${bastille_releasesdir}
     if [ ! -d "${bastille_releasesdir}" ]; then
-        if [ "${bastille_zfs_enable}" = "YES" ]; then
+        if checkyesno bastille_zfs_enable; then
             if [ -n "${bastille_zfs_zpool}" ]; then
                 zfs create ${bastille_zfs_options} -o mountpoint="${bastille_releasesdir}" "${bastille_zfs_zpool}/${bastille_zfs_prefix}/releases"
                 zfs create ${bastille_zfs_options} -o mountpoint="${bastille_releasesdir}/${RELEASE}" "${bastille_zfs_zpool}/${bastille_zfs_prefix}/releases/${RELEASE}"
@@ -199,7 +201,7 @@ bootstrap_directories() {
 
     ## create subsequent releases/XX.X-RELEASE datasets
     elif [ ! -d "${bastille_releasesdir}/${RELEASE}" ]; then
-        if [ "${bastille_zfs_enable}" = "YES" ]; then
+        if checkyesno bastille_zfs_enable; then
             if [ -n "${bastille_zfs_zpool}" ]; then
                 zfs create ${bastille_zfs_options} -o mountpoint="${bastille_releasesdir}/${RELEASE}" "${bastille_zfs_zpool}/${bastille_zfs_prefix}/releases/${RELEASE}"
             fi
@@ -247,7 +249,7 @@ bootstrap_release() {
 
             if [ "${FETCH_VALIDATION}" -ne "0" ]; then
                 ## perform cleanup only for stale/empty directories on failure
-                if [ "${bastille_zfs_enable}" = "YES" ]; then
+                if checkyesno bastille_zfs_enable; then
                     if [ -n "${bastille_zfs_zpool}" ]; then
                         if [ ! "$(ls -A "${bastille_cachedir}/${RELEASE}")" ]; then
                             zfs destroy "${bastille_zfs_zpool}/${bastille_zfs_prefix}/cache/${RELEASE}"
@@ -384,7 +386,7 @@ debootstrap_release() {
 				info "bastille_releasesdir=${bastille_releasesdir}"
 				info "DIR_BOOTSTRAP=${DIR_BOOTSTRAP}"
         ## perform cleanup only for stale/empty directories on failure
-        if [ "${bastille_zfs_enable}" = "YES" ]; then
+        if checkyesno bastille_zfs_enable; then
             if [ -n "${bastille_zfs_zpool}" ]; then
                 if [ ! "$(ls -A "${bastille_releasesdir}/${DIR_BOOTSTRAP}")" ]; then
                     zfs destroy "${bastille_zfs_zpool}/${bastille_zfs_prefix}/releases/${DIR_BOOTSTRAP}"
@@ -400,7 +402,7 @@ debootstrap_release() {
     fi
 
     case "${LINUX_FLAVOR}" in
-        stretch|buster|bullseye)
+        bionic|focal|jammy|buster|bullseye|bookworm)
         info "Increasing APT::Cache-Start"
         echo "APT::Cache-Start 251658240;" > "${bastille_releasesdir}"/${DIR_BOOTSTRAP}/etc/apt/apt.conf.d/00aptitude
         ;;
@@ -415,7 +417,7 @@ bootstrap_template() {
 
     ## ${bastille_templatesdir}
     if [ ! -d "${bastille_templatesdir}" ]; then
-        if [ "${bastille_zfs_enable}" = "YES" ]; then
+        if checkyesno bastille_zfs_enable; then
             if [ -n "${bastille_zfs_zpool}" ]; then
                 zfs create ${bastille_zfs_options} -o mountpoint="${bastille_templatesdir}" "${bastille_zfs_zpool}/${bastille_zfs_prefix}/templates"
             fi
@@ -428,7 +430,7 @@ bootstrap_template() {
     ## define basic variables
     _url=${BASTILLE_TEMPLATE_URL}
     _user=${BASTILLE_TEMPLATE_USER}
-    _repo=${BASTILLE_TEMPLATE_REPO}
+    _repo=${BASTILLE_TEMPLATE_REPO%.*} # Remove the trailing ".git"
     _template=${bastille_templatesdir}/${_user}/${_repo}
 
     ## support for non-git
@@ -474,6 +476,11 @@ if [ -n "${OPTION}" ] && [ "${OPTION}" != "${HW_MACHINE}" ] && [ "${OPTION}" != 
     fi
 fi
 
+## allow override bootstrap URLs via environment variables
+[ -n "${BASTILLE_URL_FREEBSD}" ] && bastille_url_freebsd="${BASTILLE_URL_FREEBSD}"
+[ -n "${BASTILLE_URL_HARDENEDBSD}" ] && bastille_url_hardenedbsd="${BASTILLE_URL_HARDENEDBSD}"
+[ -n "${BASTILLE_URL_MIDNIGHTBSD}" ] && bastille_url_midnightbsd="${BASTILLE_URL_MIDNIGHTBSD}"
+
 ## Filter sane release names
 case "${1}" in
 2.[0-9]*)
@@ -490,9 +497,9 @@ case "${1}" in
     PLATFORM_OS="FreeBSD"
     validate_release_url
     ;;
-*-RELEASE|*-release|*-RC1|*-rc1|*-RC2|*-rc2|*-RC3|*-rc3|*-RC4|*-rc4|*-RC5|*-rc5|*-BETA1|*-BETA2|*-BETA3|*-BETA4|*-BETA5)
+*-RELEASE|*-release|*-RC[1-9]|*-rc[1-9]|*-BETA[1-9])
     ## check for FreeBSD releases name
-    NAME_VERIFY=$(echo "${RELEASE}" | grep -iwE '^([1-9]{2,2})\.[0-9](-RELEASE|-RC[1-5]|-BETA[1-5])$' | tr '[:lower:]' '[:upper:]')
+    NAME_VERIFY=$(echo "${RELEASE}" | grep -iwE '^([0-9]{1,2})\.[0-9](-RELEASE|-RC[1-9]|-BETA[1-9])$' | tr '[:lower:]' '[:upper:]')
     UPSTREAM_URL="${bastille_url_freebsd}${HW_MACHINE}/${HW_MACHINE_ARCH}/${NAME_VERIFY}"
     PLATFORM_OS="FreeBSD"
     validate_release_url
@@ -517,8 +524,8 @@ case "${1}" in
     ## check for HardenedBSD(latest stable build release)
     NAME_VERIFY=$(echo "${RELEASE}" | grep -iwE '([0-9]{1,2})(-stable-build-latest)$' | sed 's/STABLE/stable/g' | sed 's/build/BUILD/g' | sed 's/latest/LATEST/g')
     NAME_RELEASE=$(echo "${NAME_VERIFY}" | sed 's/-BUILD-LATEST//g')
-    NAME_BUILD=$(echo "${NAME_VERIFY}" | sed 's/[0-9]\{1,2\}-stable-//g')
-    UPSTREAM_URL="${bastille_url_hardenedbsd}${NAME_RELEASE}/${HW_MACHINE}/${HW_MACHINE_ARCH}/${NAME_BUILD}"
+    NAME_BUILD=$(echo "${NAME_VERIFY}" | sed 's/[0-9]\{1,2\}-stable-BUILD-//g')
+    UPSTREAM_URL="${bastille_url_hardenedbsd}${NAME_RELEASE}/${HW_MACHINE}/${HW_MACHINE_ARCH}/installer/${NAME_BUILD}"
     PLATFORM_OS="HardenedBSD"
     validate_release_url
     ;;
@@ -535,8 +542,8 @@ current-build-latest|current-BUILD-LATEST|CURRENT-BUILD-LATEST)
     ## check for HardenedBSD(latest current build release)
     NAME_VERIFY=$(echo "${RELEASE}" | grep -iwE '(current-build-latest)' | sed 's/CURRENT/current/g' | sed 's/build/BUILD/g' | sed 's/latest/LATEST/g')
     NAME_RELEASE=$(echo "${NAME_VERIFY}" | sed 's/current-.*/current/g')
-    NAME_BUILD=$(echo "${NAME_VERIFY}" | sed 's/current-//g')
-    UPSTREAM_URL="${bastille_url_hardenedbsd}${NAME_RELEASE}/${HW_MACHINE}/${HW_MACHINE_ARCH}/${NAME_BUILD}"
+    NAME_BUILD=$(echo "${NAME_VERIFY}" | sed 's/current-BUILD-//g')
+    UPSTREAM_URL="${bastille_url_hardenedbsd}${NAME_RELEASE}/${HW_MACHINE}/${HW_MACHINE_ARCH}/installer/${NAME_BUILD}"
     PLATFORM_OS="HardenedBSD"
     validate_release_url
     ;;
@@ -544,6 +551,13 @@ http?://*/*/*)
     BASTILLE_TEMPLATE_URL=${1}
     BASTILLE_TEMPLATE_USER=$(echo "${1}" | awk -F / '{ print $4 }')
     BASTILLE_TEMPLATE_REPO=$(echo "${1}" | awk -F / '{ print $5 }')
+    bootstrap_template
+    ;;
+git@*:*/*)
+    BASTILLE_TEMPLATE_URL=${1}
+    git_repository=$(echo "${1}" | awk -F : '{ print $2 }')
+    BASTILLE_TEMPLATE_USER=$(echo "${git_repository}" | awk -F / '{ print $1 }')
+    BASTILLE_TEMPLATE_REPO=$(echo "${git_repository}" | awk -F / '{ print $2 }')
     bootstrap_template
     ;;
 #adding Ubuntu Bionic as valid "RELEASE" for POC @hackacad
@@ -576,26 +590,23 @@ ubuntu_focal|focal|ubuntu-focal)
     debootstrap_release
     ;;
 ubuntu_hirsute|hirsute|ubuntu-hirsute)
-		PLATFORM_OS="Ubuntu/Linux"
-		LINUX_FLAVOR="hirsute"
-		DIR_BOOTSTRAP="Ubuntu_2104"
-		ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
-		debootstrap_release
-		;;
-	ubuntu_jammy|jammy|ubuntu-jammy)
-		PLATFORM_OS="Ubuntu/Linux"
-		LINUX_FLAVOR="jammy"
-		DIR_BOOTSTRAP="Ubuntu_2204"
-		ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
-		debootstrap_release
-		;;
-debian_stretch|stretch|debian-stretch)
-    PLATFORM_OS="Debian/Linux"
-    LINUX_FLAVOR="stretch"
-    DIR_BOOTSTRAP="Debian9"
+    PLATFORM_OS="Ubuntu/Linux"
+    LINUX_FLAVOR="hirsute"
+    DIR_BOOTSTRAP="Ubuntu_2104"
     ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
     debootstrap_release
     ;;
+  ubuntu_jammy|jammy|ubuntu-jammy)
+    PLATFORM_OS="Ubuntu/Linux"
+    LINUX_FLAVOR="jammy"
+    DIR_BOOTSTRAP="Ubuntu_2204"
+    ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
+    debootstrap_release
+    ;;
+  debian_stretch|stretch|debian-stretch)
+    PLATFORM_OS="Debian/Linux"
+    LINUX_FLAVOR="stretch"
+    DIR_BOOTSTRAP="Debian9"
 debian_buster|buster|debian-buster)
     PLATFORM_OS="Debian/Linux"
     LINUX_FLAVOR="buster"
@@ -607,6 +618,13 @@ debian_bullseye|bullseye|debian-bullseye)
     PLATFORM_OS="Debian/Linux"
     LINUX_FLAVOR="bullseye"
     DIR_BOOTSTRAP="Debian11"
+    ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
+    debootstrap_release
+    ;;
+debian_bookworm|bookworm|debian-bookworm)
+    PLATFORM_OS="Debian/Linux"
+    LINUX_FLAVOR="bookworm"
+    DIR_BOOTSTRAP="Debian12"
     ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
     debootstrap_release
     ;;

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2018-2022, Christer Edwards <christer.edwards@gmail.com>
+# Copyright (c) 2018-2023, Christer Edwards <christer.edwards@gmail.com>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -71,9 +71,11 @@ if [ $# -gt 5 ] || [ $# -lt 1 ]; then
     usage
 fi
 
+bastille_root_check
+
 zfs_enable_check() {
     # Temporarily disable ZFS so we can create a standard backup archive
-    if [ "${bastille_zfs_enable}" = "YES" ]; then
+    if checkyesno bastille_zfs_enable; then
         bastille_zfs_enable="NO"
     fi
 }
@@ -210,7 +212,7 @@ if [ -n "${TXZ_EXPORT}" -o -n "${TGZ_EXPORT}" ] && [ -n "${SAFE_EXPORT}" ]; then
     error_exit "Error: Simple archive modes with safe ZFS export can't be used together."
 fi
 
-if [ -z "${bastille_zfs_enable}" ]; then
+if checkyesno bastille_zfs_enable; then
     if [ -n "${GZIP_EXPORT}" -o -n "${RAW_EXPORT}" -o -n "${SAFE_EXPORT}" -o "${OPT_ZSEND}" = "-Rv" ]; then
         error_exit "Options --gz, --raw, --safe, --verbose are valid for ZFS configured systems only."
     fi
@@ -292,7 +294,7 @@ export_check() {
         create_zfs_snap
     fi
 
-    if [ "${bastille_zfs_enable}" = "YES" ]; then
+    if checkyesno bastille_zfs_enable; then
         if [ -z "${USER_EXPORT}" ]; then
             info "Sending ZFS data stream..."
         fi
@@ -302,7 +304,7 @@ export_check() {
 jail_export() {
     # Attempt to export the container
     DATE=$(date +%F-%H%M%S)
-    if [ "${bastille_zfs_enable}" = "YES" ]; then
+    if checkyesno bastille_zfs_enable; then
         if [ -n "${bastille_zfs_zpool}" ]; then
             if [ -n "${RAW_EXPORT}" ]; then
                 FILE_EXT=""
@@ -382,7 +384,7 @@ if [ -n "${TARGET}" ]; then
     fi
 
     # Check if is a ZFS system
-    if [ "${bastille_zfs_enable}" != "YES" ]; then
+    if ! checkyesno bastille_zfs_enable; then
         # Check if container is running and ask for stop in non ZFS systems
         if [ -n "$(/usr/sbin/jls name | awk "/^${TARGET}$/")" ]; then
             error_exit "${TARGET} is running. See 'bastille stop'."

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2018-2022, Christer Edwards <christer.edwards@gmail.com>
+# Copyright (c) 2018-2023, Christer Edwards <christer.edwards@gmail.com>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,8 @@ esac
 if [ $# -gt 3 ] || [ $# -lt 1 ]; then
     usage
 fi
+
+bastille_root_check
 
 TARGET="${1}"
 OPT_FORCE=
@@ -150,6 +152,11 @@ update_jailconf() {
             sed -i '' "s|path.*=.*;|path = ${bastille_jailsdir}/${TARGET_TRIM}/root;|" "${JAIL_CONFIG}"
             sed -i '' "s|mount.fstab.*=.*;|mount.fstab = ${bastille_jailsdir}/${TARGET_TRIM}/fstab;|" "${JAIL_CONFIG}"
         fi
+
+        # Check for the jib script
+        if grep -qw "vnet" "${JAIL_CONFIG}"; then
+            vnet_requirements
+        fi
     fi
 }
 
@@ -157,7 +164,7 @@ update_fstab() {
     # Update fstab .bastille mountpoint on thin containers only
     # Set some variables
     FSTAB_CONFIG="${bastille_jailsdir}/${TARGET_TRIM}/fstab"
-    FSTAB_RELEASE=$(grep -owE '([1-9]{2,2})\.[0-9](-RELEASE|-RELEASE-i386|-RC[1-2])|([0-9]{1,2}-stable-build-[0-9]{1,3})|(current-build)-([0-9]{1,3})|(current-BUILD-LATEST)|([0-9]{1,2}-stable-BUILD-LATEST)|(current-BUILD-LATEST)' "${FSTAB_CONFIG}")
+    FSTAB_RELEASE=$(grep -owE '([1-9]{2,2})\.[0-9](-RELEASE|-RELEASE-i386|-RC[1-9])|([0-9]{1,2}-stable-build-[0-9]{1,3})|(current-build)-([0-9]{1,3})|(current-BUILD-LATEST)|([0-9]{1,2}-stable-BUILD-LATEST)|(current-BUILD-LATEST)' "${FSTAB_CONFIG}")
     FSTAB_CURRENT=$(grep -w ".*/releases/.*/jails/${TARGET_TRIM}/root/.bastille" "${FSTAB_CONFIG}")
     FSTAB_NEWCONF="${bastille_releasesdir}/${FSTAB_RELEASE} ${bastille_jailsdir}/${TARGET_TRIM}/root/.bastille nullfs ro 0 0"
     if [ -n "${FSTAB_CURRENT}" ] && [ -n "${FSTAB_NEWCONF}" ]; then
@@ -207,6 +214,7 @@ generate_config() {
     # See if we need to generate a vnet network section
     if [ "${IS_VNET_JAIL:-0}" = "1" ]; then
         NETBLOCK=$(generate_vnet_jail_netblock "${TARGET_TRIM}" "" "${VNET_DEFAULT_INTERFACE}")
+        vnet_requirements
     else
         # If there are multiple IP/NIC let the user configure network
         if [ -n "${IPV4_CONFIG}" ]; then
@@ -333,6 +341,17 @@ workout_components() {
     fi
 }
 
+vnet_requirements() {
+    # VNET jib script requirement
+    if [ ! "$(command -v jib)" ]; then
+        if [ -f "/usr/share/examples/jails/jib" ] && [ ! -f "/usr/local/bin/jib" ]; then
+            install -m 0544 /usr/share/examples/jails/jib /usr/local/bin/jib
+        else
+            warn "Warning: Unable to locate/install jib script required by VNET jails."
+        fi
+    fi
+}
+
 config_netif() {
     # Get interface from bastille configuration
     if [ -n "${bastille_network_loopback}" ]; then
@@ -391,7 +410,7 @@ jail_import() {
     FILE_TRIM=$(echo "${TARGET}" | sed 's/\.xz//g;s/\.gz//g;s/\.tgz//g;s/\.txz//g;s/\.zip//g;s/\.tar\.gz//g;s/\.tar//g')
     FILE_EXT=$(echo "${TARGET}" | sed "s/${FILE_TRIM}//g")
     if [ -d "${bastille_jailsdir}" ]; then
-        if [ "${bastille_zfs_enable}" = "YES" ]; then
+        if checkyesno bastille_zfs_enable; then
             if [ -n "${bastille_zfs_zpool}" ]; then
                 if [ "${FILE_EXT}" = ".xz" ]; then
                     validate_archive

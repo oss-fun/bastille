@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2018-2022, Christer Edwards <christer.edwards@gmail.com>
+# Copyright (c) 2018-2023, Christer Edwards <christer.edwards@gmail.com>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -154,8 +154,10 @@ if [ $# -gt 1 ] || [ $# -lt 1 ]; then
     bastille_usage
 fi
 
+bastille_root_check
+
 case "$1" in
-*-RELEASE|*-release|*-RC1|*-rc1|*-RC2|*-rc2)
+*-RELEASE|*-release|*-RC[1-9]|*-rc[1-9])
     RELEASE=$1
     verify_release
     ;;
