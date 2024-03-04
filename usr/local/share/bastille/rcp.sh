@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2018-2023, Christer Edwards <christer.edwards@gmail.com>
+# Copyright (c) 2018-2022, Christer Edwards <christer.edwards@gmail.com>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,90 +32,46 @@
 . /usr/local/etc/bastille/bastille.conf
 
 usage() {
-    error_exit "Usage: bastille zfs TARGET [set|get|snap] [key=value|date]'"
+    error_exit "Usage: bastille rcp [OPTION] TARGET CONTAINER_PATH HOST_PATH"
 }
 
-zfs_snapshot() {
-for _jail in ${JAILS}; do
-    info "[${_jail}]:"
-    zfs snapshot -r "${bastille_zfs_zpool}/${bastille_zfs_prefix}/jails/${_jail}"@"${TAG}"
-    echo
-done
-}
-
-zfs_destroy_snapshot() {
-for _jail in ${JAILS}; do
-    info "[${_jail}]:"
-    zfs destroy -r "${bastille_zfs_zpool}/${bastille_zfs_prefix}/jails/${_jail}"@"${TAG}"
-    echo
-done
-}
-
-zfs_set_value() {
-for _jail in ${JAILS}; do
-    info "[${_jail}]:"
-    zfs "${ATTRIBUTE}" "${bastille_zfs_zpool}/${bastille_zfs_prefix}/jails/${_jail}"
-    echo
-done
-}
-
-zfs_get_value() {
-for _jail in ${JAILS}; do
-    info "[${_jail}]:"
-    zfs get "${ATTRIBUTE}" "${bastille_zfs_zpool}/${bastille_zfs_prefix}/jails/${_jail}"
-    echo
-done
-}
-
-zfs_disk_usage() {
-for _jail in ${JAILS}; do
-    info "[${_jail}]:"
-    zfs list -t all -o name,used,avail,refer,mountpoint,compress,ratio -r "${bastille_zfs_zpool}/${bastille_zfs_prefix}/jails/${_jail}"
-    echo
-done
-}
+CPSOURCE="${1}"
+CPDEST="${2}"
 
 # Handle special-case commands first.
 case "$1" in
 help|-h|--help)
     usage
     ;;
+-q|--quiet)
+    OPTION="${1}"
+    CPSOURCE="${2}"
+    CPDEST="${3}"
+    ;;
 esac
 
-bastille_root_check
-
-## check ZFS enabled
-if ! checkyesno bastille_zfs_enable; then
-    error_exit "ZFS not enabled."
-fi
-
-## check zpool defined
-if [ -z "${bastille_zfs_zpool}" ]; then
-    error_exit "ZFS zpool not defined."
-fi
-
-if [ $# -lt 1 ]; then
+if [ $# -ne 2 ]; then
     usage
 fi
 
-case "$1" in
-set)
-    ATTRIBUTE=$2
-    zfs_set_value
-    ;;
-get)
-    ATTRIBUTE=$2
-    zfs_get_value
-    ;;
-snap|snapshot)
-    TAG=$2
-    zfs_snapshot
-    ;;
-destroy_snap|destroy_snapshot)
-    TAG=$2
-    zfs_destroy_snapshot
-    ;;
-df|usage)
-    zfs_disk_usage
-    ;;
+if [ "${TARGET}" = "ALL" ]; then
+    usage
+fi
+
+case "${OPTION}" in
+    -q|--quiet)
+        OPTION="-a"
+        ;;
+    *)
+        OPTION="-av"
+        ;;
 esac
+
+for _jail in ${JAILS}; do
+    info "[${_jail}]:"
+    bastille_jail_path="${bastille_jailsdir}/${_jail}/root"
+    cp "${OPTION}" "${bastille_jail_path}/${CPSOURCE}" "${CPDEST}"
+    RETURN="$?"
+    echo
+    return "${RETURN}"
+done

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2018-2022, Christer Edwards <christer.edwards@gmail.com>
+# Copyright (c) 2018-2023, Christer Edwards <christer.edwards@gmail.com>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,14 @@ COLOR_RED=
 COLOR_GREEN=
 COLOR_YELLOW=
 COLOR_RESET=
+
+bastille_root_check() {
+    if [ "$(id -u)" -ne 0 ]; then
+        ## permission denied
+        error_notify "Bastille: Permission Denied"
+        error_exit "root / sudo / doas required"
+    fi
+}
 
 enable_color() {
     . /usr/local/share/bastille/colors.pre.sh
@@ -108,4 +116,25 @@ EOF
   exec.poststop += "jib destroy ${uniq_epair}";
 EOF
     fi
+}
+
+checkyesno() {
+    ## copied from /etc/rc.subr -- cedwards (20231125)
+    ## issue #368 (lowercase values should be parsed)
+    ## now used for all bastille_zfs_enable=YES|NO tests
+    ## example: if checkyesno bastille_zfs_enable; then ...
+    ## returns 0 for enabled; returns 1 for disabled
+    eval _value=\$${1}
+    case $_value in
+    [Yy][Ee][Ss]|[Tt][Rr][Uu][Ee]|[Oo][Nn]|1)
+        return 0
+        ;;
+    [Nn][Oo]|[Ff][Aa][Ll][Ss][Ee]|[Oo][Ff][Ff]|0)
+        return 1
+        ;;
+    *)
+        warn "\$${1} is not set properly - see rc.conf(5)."
+        return 1
+        ;;
+    esac
 }
