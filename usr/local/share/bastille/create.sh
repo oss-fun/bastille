@@ -952,6 +952,10 @@ if [ -z "${EMPTY_JAIL}" ]; then
         NAME_VERIFY=Debian12
         validate_release
         ;;
+		await_rootfs|await|await-rootfs)
+				NAME_VERIFY=Await
+				validete_release
+				;;
     *)
         error_notify "Unknown Release."
         usage
