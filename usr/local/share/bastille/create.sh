@@ -856,6 +856,9 @@ if [ -n "${LINUX_JAIL}" ]; then
         ## check for FreeBSD releases name
         NAME_VERIFY=bookworm
         ;;
+		await_rootfs|await|await-rootfs)
+				NAME_VERIFY=await_rootfs
+				;;
     *)
         error_notify "Unknown Linux."
         usage
@@ -953,8 +956,9 @@ if [ -z "${EMPTY_JAIL}" ]; then
         validate_release
         ;;
 		await_rootfs|await|await-rootfs)
+				UBUNTU="1"
 				NAME_VERIFY=Await
-				validete_release
+				validate_release
 				;;
     *)
         error_notify "Unknown Release."
@@ -969,6 +973,7 @@ if [ -z "${EMPTY_JAIL}" ]; then
 
     ## check for required release
     if [ ! -d "${bastille_releasesdir}/${RELEASE}" ]; then
+				echo ${RELEASE}
         error_exit "Release must be bootstrapped first; see 'bastille bootstrap'."
     fi
 
