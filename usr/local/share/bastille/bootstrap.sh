@@ -561,35 +561,35 @@ git@*:*/*)
     bootstrap_template
     ;;
 #adding Ubuntu Bionic as valid "RELEASE" for POC @hackacad
-ubuntu_trusty|trusty|ubuntu-trusty)
+  ubuntu_trusty|trusty|ubuntu-trusty)
 		PLATFORM_OS="Ubuntu/Linux"
     LINUX_FLAVOR="trusty"
     DIR_BOOTSTRAP="Ubuntu_1404"
     ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
     debootstrap_release
     ;;
-ubuntu_xenial|xenial|ubuntu-xenial)
+  ubuntu_xenial|xenial|ubuntu-xenial)
 		PLATFORM_OS="Ubuntu/Linux"
 		LINUX_FLAVOR="xenial"
 		DIR_BOOTSTRAP="Ubuntu_1604"
 		ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
 		debootstrap_release
 		;;
-ubuntu_bionic|bionic|ubuntu-bionic)
+  ubuntu_bionic|bionic|ubuntu-bionic)
     PLATFORM_OS="Ubuntu/Linux"
     LINUX_FLAVOR="bionic"
     DIR_BOOTSTRAP="Ubuntu_1804"
     ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
     debootstrap_release
     ;;
-ubuntu_focal|focal|ubuntu-focal)
+  ubuntu_focal|focal|ubuntu-focal)
     PLATFORM_OS="Ubuntu/Linux"
     LINUX_FLAVOR="focal"
     DIR_BOOTSTRAP="Ubuntu_2004"
     ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
     debootstrap_release
     ;;
-ubuntu_hirsute|hirsute|ubuntu-hirsute)
+  ubuntu_hirsute|hirsute|ubuntu-hirsute)
     PLATFORM_OS="Ubuntu/Linux"
     LINUX_FLAVOR="hirsute"
     DIR_BOOTSTRAP="Ubuntu_2104"
@@ -607,21 +607,23 @@ ubuntu_hirsute|hirsute|ubuntu-hirsute)
     PLATFORM_OS="Debian/Linux"
     LINUX_FLAVOR="stretch"
     DIR_BOOTSTRAP="Debian9"
-debian_buster|buster|debian-buster)
+    debootstrap_release
+    ;;
+  debian_buster|buster|debian-buster)
     PLATFORM_OS="Debian/Linux"
     LINUX_FLAVOR="buster"
     DIR_BOOTSTRAP="Debian10"
     ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
     debootstrap_release
     ;;
-debian_bullseye|bullseye|debian-bullseye)
+  debian_bullseye|bullseye|debian-bullseye)
     PLATFORM_OS="Debian/Linux"
     LINUX_FLAVOR="bullseye"
     DIR_BOOTSTRAP="Debian11"
     ARCH_BOOTSTRAP=${HW_MACHINE_ARCH_LINUX}
     debootstrap_release
     ;;
-debian_bookworm|bookworm|debian-bookworm)
+  debian_bookworm|bookworm|debian-bookworm)
     PLATFORM_OS="Debian/Linux"
     LINUX_FLAVOR="bookworm"
     DIR_BOOTSTRAP="Debian12"
